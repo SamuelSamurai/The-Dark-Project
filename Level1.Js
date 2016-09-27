@@ -55,4 +55,5 @@ var level1={ "height":15,
  "tilewidth":35,
  "version":1,
  "width":20
-}
+
+		}
