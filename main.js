@@ -81,6 +81,9 @@ function drawMAP()
 		}
 	}
 }
+
+var player;
+var keyboard = new Keyboard();
  
 var cells = []; // the array that holds our simplified collision data
 	function initialize() {
@@ -107,10 +110,9 @@ var cells = []; // the array that holds our simplified collision data
 		}
 	}
  }
+ player =  new Player();
 }
 
-var player=  new Player();
-var keyboard = new Keyboard();
 // load an image to draw
 var chuckNorris = document.createElement("img");
 chuckNorris.src = "hero.png";
@@ -130,8 +132,11 @@ var FRICTION = MAXDX * 6;
  // (a large) instantaneous jump impulse
 var JUMP = METER * 1500;
 
+var heartImg= document.createElement("img");
+heartImg.src="hearts.png";
 
-
+var heartWidth= 20;
+var heartHeight=20;
 function run()
 {
 	context.fillStyle = "#ccc";		
@@ -140,43 +145,14 @@ function run()
 	var deltaTime = getDeltaTime();
 	
 	player.update(deltaTime);
-	player.draw();
-	function cellAtPixelCoord(layer, x,y)
-{
-	if(x<0 || x>SCREEN_WIDTH || y<0)
-	return 1;
-	// let the player drop of the bottom of the screen (this means death)
-		if(y>SCREEN_HEIGHT)
-			return 0;
-				return cellAtTileCoord(layer, p2t(x), p2t(y));
-			};
-			function cellAtTileCoord(layer, tx, ty)
-	{
-		if(tx<0 || tx>=MAP.tw || ty<0)
-			return 1;
-				// let the player drop of the bottom of the screen (this means death)
-			if(ty>=MAP.th)
-			return 0;
-			return cells[layer][ty][tx];
-	};
-			function tileToPixel(tile)
-	{
-				return tile * TILE;
-	};
-					function pixelToTile(pixel)
-	{
-						return Math.floor(pixel/TILE);
-	};
-							function bound(value, min, max)
-	{
-		if(value < min)
-		return min;
-		if(value > max)
-		return max;
-		return value;
-	}	
 	drawMAP();
+	player.draw();
+
 	
+	for(var i =0;i< player.lives;++i)
+	{
+		context.drawImage(heartImg, (canvas.width-100)+  ((heartWidth+2 )  * i) , 10, heartWidth , heartHeight);
+	}
 	
 		
 	// update the frame counter 
@@ -193,9 +169,57 @@ function run()
 	context.fillStyle = "#f00";
 	context.font="14px Arial";
 	context.fillText("FPS: " + fps, 5, 20, 100);
+	
+	context.fillStyle="#f00";
+	context.font="14xp Arial"
+	context.fillText("Lives",490,25,100)
 }
 
 initialize();
+
+function cellAtPixelCoord(layer, x,y)
+{
+if(x<0 || x>SCREEN_WIDTH) // remove ‘|| y<0’
+return 1;
+// let the player drop of the bottom of the screen
+// (this means death)
+if(y>SCREEN_HEIGHT)
+return 0;
+return cellAtTileCoord(layer, p2t(x), p2t(y));
+};
+
+function cellAtTileCoord(layer, tx, ty) // remove ‘|| y<0’
+{
+	if(tx<0 || tx>=MAP.tw)
+		return 1;
+	// let the player drop of the bottom of the screen
+	// (this means death)
+	if(ty>=MAP.th)
+		return 0;
+	if (layer >= 0 && tx >= 0 && ty >= 0)
+	{
+		return cells[layer][ty][tx];
+	}
+
+	return 0;
+}
+
+function tileToPixel(tile)
+{
+	return tile * TILE;
+}
+function pixelToTile(pixel)
+{
+	return Math.floor(pixel/TILE);
+}
+function bound(value, min, max)
+{
+	if(value < min)
+		return min;
+	if(value > max)
+		return max;
+	return value;
+}
 
 //-------------------- Don't modify anything below here
 
