@@ -40,10 +40,11 @@ var fps = 0;
 var fpsCount = 0;
 var fpsTime = 0;
 
-var LAYER_COUNT = 3;
-var LAYER_PLATFORMS = 0;
-var LAYER_LADDERS = 1;
-var MAP = {tw: 20 , th:15 };
+var LAYER_COUNT = 2 ;
+//var LAYER_BACKGROUND = 0;
+var LAYER_PLATFORMS = 1;
+var LAYER_LADDERS = 0 ;
+var MAP = {tw: 60 , th:15 };
 var TILE = 35;
 
 
@@ -58,42 +59,70 @@ var TILESET_COUNT_X=14;
 var tileset= document.createElement("img");
 tileset.src= "tileset.png";
 
-function drawMAP()
+
+var player;
+var keyboard = new Keyboard();
+
+var worldOffsetX =0;
+function drawMap()
 {
-	for(var layerIdx=0; layerIdx<LAYER_COUNT; layerIdx++)
+	var startX = -1;
+	var maxTiles = Math.floor(SCREEN_WIDTH / TILE) + 2;
+	var tileX = pixelToTile(player.position.x);
+	var offsetX = TILE + Math.floor(player.position.x%TILE);
+	
+	startX = tileX - Math.floor(maxTiles / 2);
+	
+	if(startX < -1)
 	{
-		var idx = 0;
+		startX = 0;
+		offsetX = 0;
+	}
+	if(startX > MAP.tw - maxTiles)
+	{
+		startX = MAP.tw - maxTiles + 1;
+		offsetX = TILE;
+	}
+	worldOffsetX = startX * TILE + offsetX;
+	
+	for( var layerIdx=0; layerIdx < LAYER_COUNT; layerIdx++ )
+	{
 		for( var y = 0; y < level1.layers[layerIdx].height; y++ )
 		{
-			for( var x = 0; x < level1.layers[layerIdx].width; x++ )
+			var idx = y * level1.layers[layerIdx].width + startX;
+			for( var x = startX; x < startX + maxTiles; x++ )
 			{
 				if( level1.layers[layerIdx].data[idx] != 0 )
 				{
-					// the tiles in the Tiled map are base 1 (meaning a value of 0 means no tile), so subtract one from the tileset id to get the
-					// correct tile
+					// the tiles in the Tiled map are base 1 (meaning a value of 0 means no tile),
+					// so subtract one from the tileset id to get the correct tile
 					var tileIndex = level1.layers[layerIdx].data[idx] - 1;
-					var sx = TILESET_PADDING + (tileIndex % TILESET_COUNT_X) * (TILESET_TILE + TILESET_SPACING);
-					var sy = TILESET_PADDING + (Math.floor(tileIndex / TILESET_COUNT_X)) * (TILESET_TILE + TILESET_SPACING);
-					context.drawImage(tileset, sx, sy, TILESET_TILE, TILESET_TILE, x*TILE, (y-1)*TILE, TILESET_TILE, TILESET_TILE);
-				}	
+					var sx = TILESET_PADDING + (tileIndex % TILESET_COUNT_X) *
+					(TILESET_TILE + TILESET_SPACING);
+					var sy = TILESET_PADDING + (Math.floor(tileIndex / TILESET_COUNT_Y)) *
+					(TILESET_TILE + TILESET_SPACING);
+					context.drawImage(tileset, sx, sy, TILESET_TILE, TILESET_TILE,
+					(x-startX)*TILE - offsetX, (y-1)*TILE, TILESET_TILE, TILESET_TILE);
+				}
 				idx++;
 			}
 		}
 	}
 }
 
-var player;
-var keyboard = new Keyboard();
+
  
 var cells = []; // the array that holds our simplified collision data
-	function initialize() {
-		for(var layerIdx = 0; layerIdx < LAYER_COUNT; layerIdx++) { // initialize the collision map
-			cells[layerIdx] = [];
-			var idx = 0;
-				for(var y = 0; y < level1.layers[layerIdx].height; y++) {
-				cells[layerIdx][y] = [];
-					for(var x = 0; x < level1.layers[layerIdx].width; x++) {
-					if(level1.layers[layerIdx].data[idx] != 0) {
+
+function initialize() {
+	
+	for(var layerIdx = 0; layerIdx < LAYER_COUNT; layerIdx++) { // initialize the collision map
+		cells[layerIdx] = [];
+		var idx = 0;
+		for(var y = 0; y < level1.layers[layerIdx].height; y++) {
+			cells[layerIdx][y] = [];
+			for(var x = 0; x < level1.layers[layerIdx].width; x++) {
+				if(level1.layers[layerIdx].data[idx] != 0) {
 					// for each tile we find in the layer data, we need to create 4 collisions
 					// (because our collision squares are 35x35 but the tile in the
 					// level are 70x70)
@@ -103,16 +132,19 @@ var cells = []; // the array that holds our simplified collision data
 					cells[layerIdx][y][x+1] = 1;
 				}
 				else if(cells[layerIdx][y][x] != 1) {
-				// if we haven't set this cell's value, then set it to 0 now
-				cells[layerIdx][y][x] = 0;
-		}
+					// if we haven't set this cell's value, then set it to 0 now
+					cells[layerIdx][y][x] = 0;
+				}
 			idx++;
+			}
 		}
 	}
- }
- player =  new Player();
-}
+	 player =  new Player();
+ }  
+		
+		
 
+		
 // load an image to draw
 var chuckNorris = document.createElement("img");
 chuckNorris.src = "hero.png";
@@ -145,7 +177,7 @@ function run()
 	var deltaTime = getDeltaTime();
 	
 	player.update(deltaTime);
-	drawMAP();
+	drawMap();
 	player.draw();
 
 	
