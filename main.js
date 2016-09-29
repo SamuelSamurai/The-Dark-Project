@@ -108,8 +108,12 @@ function drawMap()
 			}
 		}
 	}
+	
+	
 }
 
+var musicBackground;
+var sfxFire;
 
  
 var cells = []; // the array that holds our simplified collision data
@@ -139,7 +143,25 @@ function initialize() {
 			}
 		}
 	}
-	 player =  new Player();
+	
+	player =  new Player();
+	
+	
+	musicBackground = new Howl(
+	{
+	urls:["background.ogg"],
+    loop: true,
+    buffer: true,
+    volume : 0.5 	
+	});
+    musicBackground.play();
+	
+	sfxFire=new Howl(
+	{
+		urls:["fireEffect.ogg"],
+		buffer: true,
+		volume: 1 
+	});
  }  
 		
 		
