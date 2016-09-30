@@ -40,14 +40,12 @@ var fps = 0;
 var fpsCount = 0;
 var fpsTime = 0;
 
-var LAYER_COUNT = 2 ;
+var LAYER_COUNT = 3 ;
 //var LAYER_BACKGROUND = 0;
 var LAYER_PLATFORMS = 1;
 var LAYER_LADDERS = 0 ;
 var MAP = {tw: 60 , th:15 };
 var TILE = 35;
-
-
 
 var TILESET_TILE=TILE*2;
 var TILESET_PADDING= 2;
@@ -55,6 +53,27 @@ var TILESET_SPACING= 2;
 var TILESET_COUNT_Y=14;
 var TILESET_COUNT_X=14;
 
+ // abitrary choice for 1m
+var METER = TILE;
+ // very exaggerated gravity (6x)
+var GRAVITY = METER * 9.8 * 6;
+ // max horizontal speed (10 tiles per second)
+var MAXDX = METER * 10;
+ // max vertical speed (15 tiles per second)
+var MAXDY = METER * 15;
+ // horizontal acceleration - take 1/2 second to reach maxdx
+var ACCEL = MAXDX * 2;
+ // horizontal friction - take 1/6 second to stop from maxdx
+var FRICTION = MAXDX * 6;
+ // (a large) instantaneous jump impulse
+var JUMP = METER * 1500;
+
+var ENEMY_MAXDX = METER * 5;
+var ENEMY_ACCEL = ENEMY_MAXDX * 2;
+var enemies = [];
+
+var LAYER_OBJECT_ENEMIES = 2;
+var LAYER_OBJECT_TRIGGERS = 4;
 
 var tileset= document.createElement("img");
 tileset.src= "tileset.png";
@@ -92,7 +111,7 @@ function drawMap()
 			var idx = y * level1.layers[layerIdx].width + startX;
 			for( var x = startX; x < startX + maxTiles; x++ )
 			{
-				if( level1.layers[layerIdx].data[idx] != 0 )
+				if( level1.layers[layerIdx].data[idx] != 0 && layerIdx != LAYER_OBJECT_ENEMIES)
 				{
 					// the tiles in the Tiled map are base 1 (meaning a value of 0 means no tile),
 					// so subtract one from the tileset id to get the correct tile
@@ -120,29 +139,48 @@ var cells = []; // the array that holds our simplified collision data
 
 function initialize() {
 	
+
 	for(var layerIdx = 0; layerIdx < LAYER_COUNT; layerIdx++) { // initialize the collision map
-		cells[layerIdx] = [];
-		var idx = 0;
-		for(var y = 0; y < level1.layers[layerIdx].height; y++) {
-			cells[layerIdx][y] = [];
-			for(var x = 0; x < level1.layers[layerIdx].width; x++) {
-				if(level1.layers[layerIdx].data[idx] != 0) {
-					// for each tile we find in the layer data, we need to create 4 collisions
-					// (because our collision squares are 35x35 but the tile in the
-					// level are 70x70)
-					cells[layerIdx][y][x] = 1;
-					cells[layerIdx][y-1][x] = 1;
-					cells[layerIdx][y-1][x+1] = 1;
-					cells[layerIdx][y][x+1] = 1;
-				}
-				else if(cells[layerIdx][y][x] != 1) {
-					// if we haven't set this cell's value, then set it to 0 now
-					cells[layerIdx][y][x] = 0;
-				}
-			idx++;
+ cells[layerIdx] = [];
+ var idx = 0;
+ for(var y = 0; y < level1.layers[layerIdx].height; y++) {
+ cells[layerIdx][y] = [];
+ for(var x = 0; x < level1.layers[layerIdx].width; x++) {
+ if(level1.layers[layerIdx].data[idx] != 0) {
+ // for each tile we find in the layer data, we need to create 4 collisions
+ // (because our collision squares are 35x35 but the tile in the
+// level are 70x70)
+if (layerIdx != LAYER_OBJECT_ENEMIES)
+{
+	 cells[layerIdx][y][x] = 1;
+	cells[layerIdx][y-1][x] = 1;
+	cells[layerIdx][y-1][x+1] = 1;
+	cells[layerIdx][y][x+1] = 1;
+}
+
+ }
+ else if(cells[layerIdx][y][x] != 1) {
+// if we haven't set this cell's value, then set it to 0 now
+ cells[layerIdx][y][x] = 0;
+}
+ idx++;
+ }
+ }
+ }
+ 
+ idx = 0;
+	for(var y = 0; y < level1.layers[LAYER_OBJECT_ENEMIES].height; y++) {
+		for(var x = 0; x < level1.layers[LAYER_OBJECT_ENEMIES].width; x++) {
+			if(level1.layers[LAYER_OBJECT_ENEMIES].data[idx] != 0) {
+				var px = tileToPixel(x);
+				var py = tileToPixel(y);
+				var e = new Enemy(px, py);
+				enemies.push(e);
 			}
+			idx++;
 		}
 	}
+
 	
 	player =  new Player();
 	
@@ -165,50 +203,37 @@ function initialize() {
  }  
 		
 		
-
-		
 // load an image to draw
 var chuckNorris = document.createElement("img");
 chuckNorris.src = "hero.png";
 
- // abitrary choice for 1m
-var METER = TILE;
- // very exaggerated gravity (6x)
-var GRAVITY = METER * 9.8 * 6;
- // max horizontal speed (10 tiles per second)
-var MAXDX = METER * 10;
- // max vertical speed (15 tiles per second)
-var MAXDY = METER * 15;
- // horizontal acceleration - take 1/2 second to reach maxdx
-var ACCEL = MAXDX * 2;
- // horizontal friction - take 1/6 second to stop from maxdx
-var FRICTION = MAXDX * 6;
- // (a large) instantaneous jump impulse
-var JUMP = METER * 1500;
+
 
 var heartImg= document.createElement("img");
 heartImg.src="hearts.png";
 
 var heartWidth= 20;
 var heartHeight=20;
+
+
 function run()
-{
-	context.fillStyle = "#ccc";		
+{    	
+context.fillStyle = "#ccc";		
 	context.fillRect(0, 0, canvas.width, canvas.height);
 	
 	var deltaTime = getDeltaTime();
 	
 	player.update(deltaTime);
+
 	drawMap();
 	player.draw();
-
 	
-	for(var i =0;i< player.lives;++i)
+	for(var i=0; i<enemies.length; i++)
 	{
-		context.drawImage(heartImg, (canvas.width-100)+  ((heartWidth+2 )  * i) , 10, heartWidth , heartHeight);
+	enemies[i].update(deltaTime);
+	enemies[i].draw();
 	}
 	
-		
 	// update the frame counter 
 	fpsTime += deltaTime;
 	fpsCount++;

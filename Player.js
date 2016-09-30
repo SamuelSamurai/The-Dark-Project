@@ -1,7 +1,6 @@
 
 var LEFT= 0;
 var RIGHT= 1;
-
 var ANIM_IDLE_LEFT=0;
 var ANIM_JUMP_LEFT=1;
 var ANIM_WALK_LEFT= 2;
